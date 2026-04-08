@@ -46,7 +46,7 @@ def train_model():
             Input(shape=(X_train.shape[1], X_train.shape[2])),
             LSTM(50),
             Dropout(0.2),
-            Dense(1)
+            Dense(3)
         ])
         print("Model built.")
         sys.stdout.flush()

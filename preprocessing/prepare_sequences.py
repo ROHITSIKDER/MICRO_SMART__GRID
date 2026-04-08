@@ -23,12 +23,11 @@ def prepare_sequences(input_path, x_output_path, y_output_path, window_size=7):
         # We iterate through the data and take chunks of 'window_size' days
         print(f"Creating sequences with a window size of {window_size} days...")
         for i in range(len(data) - window_size):
-            # X: Past 7 days of all features (temp, wind, solar)
+            # X: Past 7 days of all features (temp, wind, solar, biomass)
             X.append(data[i:i + window_size])
             
-            # y: Next day's solar_irradiance
-            # Column index 2 is 'solar_irradiance' (after dropping DATE: 0=temp, 1=wind, 2=solar)
-            y.append(data[i + window_size, 2])
+            # y: Next day's features (wind, solar, biomass) - indices 1 to 4
+            y.append(data[i + window_size, 1:4])
             
         # 4. Convert lists to numpy arrays
         X = np.array(X)

@@ -49,8 +49,8 @@ def train_cnn_lstm():
             LSTM(50),
             # Dropout (0.2)
             Dropout(0.2),
-            # Dense (1 output)
-            Dense(1)
+            # Dense (3 outputs: wind, solar and biomass)
+            Dense(3)
         ])
         print("Model built.")
         sys.stdout.flush()

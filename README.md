@@ -1,15 +1,28 @@
-# Micro-Smart-Grid Solar Forecasting
+# Micro-Smart-Grid Energy Management System
 
-This project implements time-series forecasting for solar irradiance using NASA POWER daily data. It features two deep learning architectures: LSTM and CNN-LSTM.
+This project implements a comprehensive Micro-Smart-Grid management system featuring time-series forecasting for renewable energy sources (Solar, Wind, Biomass) and an intelligent optimization module for energy storage and cost reduction.
+
+## Features
+
+- **Multi-Source Forecasting**: Deep learning models (LSTM and CNN-LSTM) to predict energy generation from solar, wind, and biomass.
+- **Microgrid Optimization**: An intelligent energy management system that optimizes battery usage and grid dependency to minimize costs.
+- **Model Comparison**: Automated scripts to evaluate and compare different neural network architectures.
+- **Visualization**: Graphical representation of forecasting accuracy and optimization results.
 
 ## Project Structure
 
-- `Data/`: Contains raw and cleaned datasets.
-- `preprocessing/`: Scripts for data cleaning and sequence preparation.
+- `Data/`: Contains raw, cleaned, and merged datasets (`biogas_dataset.csv`, `final_data.csv`, etc.).
+- `preprocessing/`: Scripts for data cleaning and sequence preparation (`clean_data.py`, `merge_data.py`, `prepare_sequences.py`).
 - `model/`: Training scripts and saved model files.
-- `app/`: Placeholder for future web application.
+    - `train_lstm.py`: Train a standard LSTM model.
+    - `train_cnn_lstm.py`: Train a hybrid CNN-LSTM model.
+    - `saved_models/`: Serialized Keras models (`.keras`).
+- `optimization_module.py`: The core optimization engine that uses model predictions to manage energy flow.
+- `microgrid_optimization_system.py`: A simulation environment for testing energy management strategies.
+- `evaluate_models.py`: Script to validate model performance on test data.
+- `compare_models.py`: Generates comparative metrics and visualizations between different models.
+- `run_all.py`: Orchestrator script to run the full training and preprocessing pipeline.
 - `requirements.txt`: Project dependencies.
-- `run_all.py`: Orchestrator script to run the entire pipeline.
 
 ## Getting Started
 
@@ -25,24 +38,39 @@ Install the required dependencies:
 pip install -r requirements.txt
 ```
 
-### Running the Project
+### Running the Pipeline
 
-To execute the entire pipeline (data cleaning, sequence preparation, and model training), run:
+To execute the entire pipeline (data cleaning, sequence preparation, and model training):
 
 ```bash
 python run_all.py
 ```
 
-### Individual Steps
+### Energy Optimization
 
-1.  **Clean Data**: `python preprocessing/clean_data.py`
-2.  **Prepare Sequences**: `python preprocessing/prepare_sequences.py`
-3.  **Train LSTM**: `python model/train_lstm.py`
-4.  **Train CNN-LSTM**: `python model/train_cnn_lstm.py`
+To run the energy management optimization and see the cost-saving results:
 
-## Models
+```bash
+python optimization_module.py
+```
 
-The models are saved in the `model/saved_models/` directory in `.keras` format.
+This will generate `microgrid_results.png` showing the energy distribution and battery state.
 
-- `lstm_model.keras`: A recurrent neural network model using LSTM layers.
-- `cnn_lstm_model.keras`: A hybrid model combining a 1D Convolutional layer for feature extraction and an LSTM layer for sequence learning.
+### Model Comparison
+
+To compare the performance of the trained models:
+
+```bash
+python compare_models.py
+```
+
+This will generate `model_comparison.png` with key performance indicators (RMSE, MAE, R², etc.).
+
+## Results
+
+The system significantly reduces energy costs by:
+1.  **Prioritizing Renewables**: Using predicted solar/wind/biomass energy first.
+2.  **Smart Battery Management**: Charging the battery during periods of excess renewable generation and discharging during peak demand or low generation.
+3.  **Grid Reduction**: Minimizing reliance on expensive grid power.
+
+Graphs like `microgrid_results.png` and `model_comparison.png` provide a visual summary of these improvements.
