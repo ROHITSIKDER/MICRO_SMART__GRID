@@ -53,7 +53,7 @@ def prepare_sequences(input_path, x_output_path, y_output_path, window_size=7):
 
 if __name__ == "__main__":
     # Define paths
-    input_file = os.path.join('Data', 'cleaned_data.csv')
+    input_file = os.path.join('Data', 'final_data.csv')
     x_save_path = os.path.join('model', 'X.npy')
     y_save_path = os.path.join('model', 'y.npy')
     

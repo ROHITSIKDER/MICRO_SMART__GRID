@@ -1,13 +1,15 @@
 import os
+
+# 1. SETUP & CONFIGURATION
+# Set Keras backend to torch for Python 3.14 compatibility (MUST BE BEFORE KERAS IMPORT)
+os.environ['KERAS_BACKEND'] = 'torch'
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import keras
+import json
 from sklearn.model_selection import train_test_split
-
-# 1. SETUP & CONFIGURATION
-# Set Keras backend to torch for Python 3.14 compatibility
-os.environ['KERAS_BACKEND'] = 'torch'
 MODEL_PATH = 'model/saved_models/cnn_lstm_model.keras'
 DATA_PATH = 'Data/final_data.csv'
 
@@ -108,22 +110,31 @@ def run_optimization(predicted_energy):
 
     # 4. COST CALCULATIONS
     # With Optimization: Battery usage cost (₹2) + Grid cost (₹8)
-    cost_with_opt = (np.array(energy_from_battery) * BATTERY_COST) + (np.array(energy_from_grid) * GRID_COST)
+    cost_with_opt_list = (np.array(energy_from_battery) * BATTERY_COST) + (np.array(energy_from_grid) * GRID_COST)
+    cost_with_opt = cost_with_opt_list.sum()
     
     # Without Optimization: All deficit (Demand - Renewable) comes from Grid at ₹8
     deficit_no_opt = np.maximum(0, demand - np.array(predicted_energy))
-    cost_no_opt = deficit_no_opt * GRID_COST
+    cost_no_opt = (deficit_no_opt * GRID_COST).sum()
     
-    return {
+    results = {
         'demand': demand,
         'predicted_energy': predicted_energy,
         'ren_used': energy_from_renewable,
         'bat_used': energy_from_battery,
         'grid_used': energy_from_grid,
         'bat_level': battery_history,
-        'cost_opt_total': cost_with_opt.sum(),
-        'cost_no_opt_total': cost_no_opt.sum()
+        'cost_opt_total': float(cost_with_opt),
+        'cost_no_opt_total': float(cost_no_opt)
     }
+    
+    # Add savings and metrics
+    savings = cost_no_opt - cost_with_opt
+    results['savings'] = float(savings)
+    results['savings_pct'] = float((savings / cost_no_opt) * 100) if cost_no_opt > 0 else 0
+    results['grid_reduction_pct'] = float((np.sum(deficit_no_opt) - np.sum(energy_from_grid)) / np.sum(deficit_no_opt) * 100) if np.sum(deficit_no_opt) > 0 else 0
+    
+    return results
 
 def visualize_results(results):
     """Generates and saves research-quality plots."""
@@ -163,9 +174,9 @@ def visualize_results(results):
         plt.text(bar.get_x() + bar.get_width()/2, yval + 100, f'₹{int(yval):,}', ha='center', va='bottom', fontweight='bold')
 
     plt.tight_layout()
-    os.makedirs('Data/plots', exist_ok=True)
-    plt.savefig('Data/plots/optimization_report.png')
-    print("\n[System] Visualization report saved to 'Data/plots/optimization_report.png'")
+    # Save to microgrid_results.png for consistency
+    plt.savefig('microgrid_results.png')
+    print("\n[System] Visualization report saved to 'microgrid_results.png'")
 
 def main():
     print("="*60)
@@ -181,11 +192,7 @@ def main():
     print("[Step 2] Simulating Energy Management Strategy...")
     results = run_optimization(pred_energy)
     
-    # Step 3: Calculate Metrics
-    savings = results['cost_no_opt_total'] - results['cost_opt_total']
-    savings_pct = (savings / results['cost_no_opt_total']) * 100 if results['cost_no_opt_total'] > 0 else 0
-    
-    # Step 4: Clear Printed Results
+    # Step 3: Clear Printed Results
     print("\n" + "*"*60)
     print("                OPTIMIZATION RESULTS SUMMARY")
     print("*"*60)
@@ -199,15 +206,22 @@ def main():
     print("-" * 60)
     print(f"{'Estimated Cost WITHOUT Opt':<30} | ₹{results['cost_no_opt_total']:.2f}")
     print(f"{'Estimated Cost WITH Opt':<30} | ₹{results['cost_opt_total']:.2f}")
-    print(f"{'NET SAVINGS':<30} | ₹{savings:.2f}")
-    print(f"{'PERCENTAGE SAVED':<30} | {savings_pct:.2f}%")
+    print(f"{'NET SAVINGS':<30} | ₹{results['savings']:.2f}")
+    print(f"{'PERCENTAGE SAVED':<30} | {results['savings_pct']:.2f}%")
     print("*"*60)
+
+    # Step 4: Save optimization results
+    with open('model/optimization_results.json', 'w') as f:
+        # We only save JSON serializable part
+        json_results = {k: v for k, v in results.items() if not isinstance(v, (np.ndarray, list))}
+        json.dump(json_results, f, indent=4)
+    print("\nOptimization metrics saved to 'model/optimization_results.json'")
 
     # Step 5: Final Summary
     print("\n[Step 3] Scientific Conclusion:")
     print(f"By utilizing a 500kWh battery storage system alongside CNN-LSTM predictions,")
     print(f"the microgrid successfully reduced grid reliance by {np.sum(results['bat_used']):.2f} kWh.")
-    print(f"The optimization module achieved a cost reduction of {savings_pct:.1f}%, making the")
+    print(f"The optimization module achieved a cost reduction of {results['savings_pct']:.1f}%, making the")
     print(f"hybrid system significantly more economically viable.")
 
     # Step 6: Visualization
