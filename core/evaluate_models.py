@@ -22,24 +22,41 @@ def evaluate_model(model_path, X_test, y_test):
         metrics = {}
         # Calculate metrics for each output (wind, solar, biomass)
         targets = ['Wind Speed', 'Solar Energy', 'Biomass Energy']
+        
+        # Avoid division by zero for MAPE
+        epsilon = 1e-7 
+        
         for i, target in enumerate(targets):
             mse = mean_squared_error(y_test[:, i], y_pred[:, i])
+            rmse = np.sqrt(mse)
             mae = mean_absolute_error(y_test[:, i], y_pred[:, i])
+            mape = np.mean(np.abs((y_test[:, i] - y_pred[:, i]) / (y_test[:, i] + epsilon))) * 100
             r2 = r2_score(y_test[:, i], y_pred[:, i])
-            print(f"{target}: MSE={mse:.4f}, MAE={mae:.4f}, R2={r2:.4f}")
-            metrics[target] = {'mse': float(mse), 'mae': float(mae), 'r2': float(r2)}
+            
+            print(f"{target}: RMSE={rmse:.4f}, MAE={mae:.4f}, MAPE={mape:.2f}%, R2={r2:.4f}")
+            metrics[target] = {
+                'mse': float(mse), 
+                'rmse': float(rmse),
+                'mae': float(mae), 
+                'mape': float(mape),
+                'r2': float(r2)
+            }
             
         # Overall metrics
         mse_overall = mean_squared_error(y_test, y_pred)
         mae_overall = mean_absolute_error(y_test, y_pred)
+        rmse_overall = np.sqrt(mse_overall)
+        mape_overall = np.mean(np.abs((y_test - y_pred) / (y_test + epsilon))) * 100
         r2_overall = r2_score(y_test, y_pred)
-        print(f"Overall MSE: {mse_overall:.4f}")
+        
+        print(f"Overall RMSE: {rmse_overall:.4f}, Overall MAPE: {mape_overall:.2f}%")
         
         metrics['overall'] = {
             'mse': float(mse_overall),
+            'rmse': float(rmse_overall),
             'mae': float(mae_overall),
-            'r2': float(r2_overall),
-            'rmse': float(np.sqrt(mse_overall))
+            'mape': float(mape_overall),
+            'r2': float(r2_overall)
         }
         return metrics
 
@@ -48,13 +65,19 @@ def evaluate_model(model_path, X_test, y_test):
         return None
 
 def main():
+    # Get Project Root
+    PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    X_PATH = os.path.join(PROJECT_ROOT, 'model', 'X.npy')
+    Y_PATH = os.path.join(PROJECT_ROOT, 'model', 'y.npy')
+    METRICS_OUT = os.path.join(PROJECT_ROOT, 'model', 'metrics.json')
+
     # Load data
-    if not os.path.exists('model/X.npy') or not os.path.exists('model/y.npy'):
+    if not os.path.exists(X_PATH) or not os.path.exists(Y_PATH):
         print("Error: Data files not found.")
         return
 
-    X = np.load('model/X.npy')
-    y = np.load('model/y.npy')
+    X = np.load(X_PATH)
+    y = np.load(Y_PATH)
     
     # Split using the same random state as in training scripts
     _, X_test, _, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -62,13 +85,16 @@ def main():
     print(f"Test set shape: X={X_test.shape}, y={y_test.shape}")
     
     results = {}
-    results['lstm'] = evaluate_model('model/saved_models/lstm_model.keras', X_test, y_test)
-    results['cnn_lstm'] = evaluate_model('model/saved_models/cnn_lstm_model.keras', X_test, y_test)
+    lstm_m = os.path.join(PROJECT_ROOT, 'model', 'saved_models', 'lstm_model.keras')
+    cnn_lstm_m = os.path.join(PROJECT_ROOT, 'model', 'saved_models', 'cnn_lstm_model.keras')
+    
+    results['lstm'] = evaluate_model(lstm_m, X_test, y_test)
+    results['cnn_lstm'] = evaluate_model(cnn_lstm_m, X_test, y_test)
     
     # Save results to JSON
-    with open('model/metrics.json', 'w') as f:
+    with open(METRICS_OUT, 'w') as f:
         json.dump(results, f, indent=4)
-    print("\nMetrics saved to 'model/metrics.json'")
+    print(f"\nMetrics saved to {METRICS_OUT}")
 
 if __name__ == "__main__":
     main()
